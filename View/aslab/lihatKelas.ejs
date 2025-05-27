@@ -1,0 +1,76 @@
+<%- include('../template/header_auth') %>  <!-- panggil header.ejs -->
+<div class="container-fluid">
+
+    <!-- Page Heading -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+      <h1 class="h3 mb-0 text-gray-800"><%= judul %></h1>
+    </div>
+  
+    <!-- Sticky Navbar -->
+    <nav class="navbar sticky-top navbar-expand-lg navbar-light bg-light">
+      <a class="navbar-brand" href="/">
+        <img src="/assets/img/class/<%= kelas.image %>" width="30" height="30" class="d-inline-block align-top rounded-circle" alt="">
+        <%= kelas.nama_kelas %>
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav"
+        aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+  
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ml-auto mr-3">
+          <li class="nav-item">
+            <a class="nav-link" href="/lihatAnggota/<%= kelas.id %>">Lihat Anggota</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/tambahTugas/<%= kelas.id %>">Tambah Tugas</a>
+          </li>
+        </ul>
+      </div>
+    </nav>
+  
+    <div class="row">
+      <div class="col-md">
+        <% if (message && message.length > 0) { %>
+          <div class="alert alert-success"><%= message %></div>
+        <% } %>
+      </div>
+    </div>
+  
+    <% if (!tugas || tugas.length === 0) { %>
+      <div class="row">
+        <div class="col-md">
+          <div class="col-md-12 text-center text-success">
+            <h2>Ooopppsss!!! <br> Anda belum pernah membuat tugas di kelas ini</h2><br>
+          </div>
+          <div class="col-md d-flex justify-content-center">
+            <img style="width: 20%" src="/assets/img/cry1.png" class="card-img" alt="..."><br>
+          </div>
+          <div class="col-md-12 d-flex justify-content-center">
+            <a href="/tambahTugas/<%= kelas.id %>" class="btn btn-lg btn-success">
+              <i class="fas fa-plus"></i> Tambah Tugas
+            </a>
+          </div>
+        </div>
+      </div>
+    <% } else { %>
+      <div class="row">
+        <div class="col-md-12">
+          <% tugas.forEach(t => { %>
+            <div class="list-group mb-3">
+              <a href="/detailTugas/<%= kelas.id %>/<%= t.id %>" class="list-group-item list-group-item-action">
+                <%= t.Title %>
+                <p><%= new Date(t.batas_waktu * 1000).toLocaleString('id-ID', {
+                  day: '2-digit', month: 'long', year: 'numeric',
+                  hour: '2-digit', minute: '2-digit', second: '2-digit'
+                }) %></p>
+              </a>
+            </div>
+          <% }) %>
+        </div>
+      </div>
+    <% } %>
+  
+  </div>
+  <!-- End of Page Content -->
+  

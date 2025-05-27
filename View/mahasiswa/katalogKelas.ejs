@@ -1,0 +1,43 @@
+<%- include('../template/header_auth') %>  <!-- panggil header.ejs -->
+
+<!-- Begin Page Content -->
+<div class="container-fluid">
+
+    <!-- Page Heading -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800"><%= judul %></h1>
+    </div>
+
+    <!-- Flash Message -->
+    <div class="row">
+        <div class="col-md">
+            <% if (message && message.length > 0) { %>
+                <div class="alert alert-success"><%= message %></div>
+            <% } %>
+        </div>
+    </div>
+
+    <!-- Daftar Kelas -->
+    <div class="row">
+        <% if (kelas && kelas.length > 0) { %>
+            <% kelas.forEach(k => { %>
+                <div class="col-md-3 pt-3">
+                    <div class="card" style="width: 15.5rem;">
+                        <img height="250px" class="card-img-top" src="/assets/img/class/<%= k.image %>" alt="Gambar Kelas">
+                        <div class="card-body">
+                            <h5 class="card-title"><%= k.nama_kelas %></h5>
+                            <p class="card-text"><%= k.deskripsi || '' %></p>
+                            <a href="/mahasiswa/tambahKelas/<%= k.id %>" class="btn btn-primary">Ikuti Kelas</a>
+                        </div>
+                    </div>
+                </div>
+            <% }) %>
+        <% } else { %>
+            <div class="col-12">
+                <p class="text-center">Belum ada kelas tersedia.</p>
+            </div>
+        <% } %>
+    </div>
+
+</div>
+<!-- /.container-fluid -->

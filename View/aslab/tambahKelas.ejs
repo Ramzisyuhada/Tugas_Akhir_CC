@@ -1,0 +1,63 @@
+<%- include('../template/header_auth') %>  <!-- panggil header.ejs -->
+
+<div class="container-fluid">
+
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+      <h1 class="h3 mb-0 text-gray-800"><%= judul %></h1>
+    </div>
+  
+    <form action="" method="POST" enctype="multipart/form-data">
+      <div class="row">
+        <div class="col-md-4">
+          <div class="card" style="width: 100%;">
+            <img class="card-img-top" src="/assets/img/class/default.jpg" alt="Card image cap">
+          </div>
+          <div class="custom-file mt-3">
+            <input type="file" class="custom-file-input" id="image" name="image">
+            <label class="custom-file-label" for="image">Pilih gambar</label>
+          </div>
+        </div>
+  
+        <div class="col-md-8">
+          <div class="form-group">
+            <label for="class_name">Nama Kelas</label>
+            <input type="text" class="form-control" id="class_name" name="class_name" value="<%= formData?.class_name || '' %>">
+            <% if (errors?.class_name) { %>
+              <small class="text-danger"><%= errors.class_name %></small>
+            <% } %>
+          </div>
+  
+          <div class="form-group">
+            <label for="description">Deskripsi</label>
+            <input type="text" class="form-control" id="description" name="description" value="<%= formData?.description || '' %>">
+            <% if (errors?.description) { %>
+              <small class="text-danger"><%= errors.description %></small>
+            <% } %>
+          </div>
+  
+          <% 
+            const generateToken = () => {
+              const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+              let str = '';
+              for (let i = 0; i < 4; i++) {
+                str += chars.charAt(Math.floor(Math.random() * chars.length));
+              }
+              return str;
+            };
+          %>
+          <div class="form-group">
+            <label for="token">Token</label>
+            <input type="text" class="form-control" id="token" name="token" value="<%= token || generateToken() %>" readonly>
+            <% if (errors?.token) { %>
+              <small class="text-danger"><%= errors.token %></small>
+            <% } %>
+          </div>
+  
+          <div class="form-group d-flex justify-content-end">
+            <button type="submit" class="btn btn-primary"><i class="fas fa-fw fa-plus"></i> Tambah</button>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+  

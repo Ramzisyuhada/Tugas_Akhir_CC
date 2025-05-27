@@ -1,0 +1,60 @@
+<%- include('../template/header') %>  <!-- panggil header.ejs -->
+
+<div class="container">
+
+    <!-- Outer Row -->
+    <div class="row justify-content-center">
+  
+      <div class="col-md-6">
+  
+        <div class="card o-hidden border-0 shadow-lg my-5">
+          <div class="card-body p-0">
+            <!-- Nested Row within Card Body -->
+            <div class="row">
+              <div class="col-md">
+                <div class="p-5">
+                  <div class="text-center">
+                    <h1 class="h4 text-gray-900 mb-4">Halaman Login</h1>
+                  </div>
+  
+                  <% if (message) { %>
+                    <div class="alert alert-danger"><%= message %></div>
+                  <% } %>
+  
+                  <form class="user" method="post" action="/auth">
+                    <div class="form-group">
+                      <input type="text" class="form-control form-control-user" id="nim" name="nim" placeholder="Masukkan NIM" value="<%= typeof nim !== 'undefined' ? nim : '' %>" autofocus>
+                      <% if (errors && errors.nim) { %>
+                        <small class="text-danger"><%= errors.nim.msg %></small>
+                      <% } %>
+                    </div>
+                    <div class="form-group">
+                      <input type="password" class="form-control form-control-user" id="password" name="password" placeholder="Password">
+                      <% if (errors && errors.password) { %>
+                        <small class="text-danger"><%= errors.password.msg %></small>
+                      <% } %>
+                    </div>
+  
+                    <button type="submit" class="btn btn-primary btn-user btn-block">
+                      Login
+                    </button>
+                  </form>
+  
+                  <hr>
+                  <div class="text-center">
+                    <a class="small" href="/auth/forgotPassword">Lupa Password?</a>
+                  </div>
+                  <div class="text-center">
+                    <a class="small" href="/Auth/register">Belum Punya Akun?</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+  
+      </div>
+  
+    </div>
+  </div>
+  

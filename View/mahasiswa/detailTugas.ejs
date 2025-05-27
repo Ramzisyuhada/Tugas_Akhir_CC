@@ -1,0 +1,111 @@
+<!-- Begin Page Content -->
+
+<%- include('../template/header_auth') %>
+
+<div class="container-fluid">
+
+  <!-- Page Heading -->
+  <div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800"><%= judul %></h1>
+  </div>
+
+  <% if (message) { %>
+  <div class="row">
+    <div class="col-md">
+      <%= message %>
+    </div>
+  </div>
+  <% } %>
+
+  <div class="row">
+    <!-- Tugas Title -->
+    <div class="col-md-8 mb-3">
+      <label>Title</label>
+      <input type="text" class="form-control" readonly value="<%= tugas.Title %>">
+    </div>
+
+    <!-- Tugas Description -->
+    <div class="col-md-8 mb-3">
+      <label>Description</label>
+      <input type="text" class="form-control" readonly value="<%= tugas.Description %>">
+    </div>
+
+    <!-- Batas Waktu -->
+    <div class="col-md-8 mb-3">
+      <label>Batas Waktu</label>
+      <input type="text" class="form-control" readonly value="<%= new Date(tugas.batas_waktu * 1000).toLocaleString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute:'2-digit', second:'2-digit', hour12: true }) %>">
+    </div>
+
+    <!-- Status Pengumpulan -->
+    <div class="col-md-8 mb-3">
+      <% if (task) { %>
+        <div class="alert alert-success">Anda sudah mengumpulkan</div>
+      <% } else if (tugas.batas_waktu < Math.floor(Date.now() / 1000)) { %>
+        <div class="alert alert-danger">Waktu Habis</div>
+      <% } else { %>
+        <form action="/mahasiswa/kumpulTugas/<%= tugas.id %>" method="POST" enctype="multipart/form-data">
+          <div class="form-group">
+            <label for="file">Kumpul Tugas</label>
+            <div class="custom-file">
+              <input type="file" class="custom-file-input" name="file" id="file" required>
+              <label class="custom-file-label" for="file">Choose file</label>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary">Kumpulkan</button>
+        </form>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- Example File -->
+  <% if (tugas.example) { %>
+  <div class="row">
+    <div class="col-md-8 mb-3">
+      <div class="card" style="width: 20rem;">
+        <div class="card-body">
+          <h5 class="card-title">Example</h5>
+          <h6 class="card-subtitle mb-2 text-muted">
+            <i class="fas fa-fw fa-file-pdf"></i>
+            <i class="fas fa-fw fa-file-archive"></i>
+            <i class="fas fa-fw fa-file-word"></i>
+          </h6>
+          <a href="/mahasiswa/download/<%= tugas.id %>" class="btn btn-primary card-link">
+            <i class="fas fa-fw fa-file-download"></i> Download
+          </a>
+          <a href="#" data-id="<%= tugas.id %>" class="card-link" data-toggle="modal" data-target="#exampleModal">
+            <i class="fas fa-fw fa-eye"></i> Preview
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <% } %>
+
+</div>
+<!-- End Page Content -->
+
+<!-- Modal Preview Example File -->
+<div class="modal fade bd-example-modal-lg" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalLabel"><%= tugas.example %></h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <embed src="/assets/img/tugas/<%= tugas.example %>" type="application/pdf" width="100%" height="350px"/>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-primary" data-dismiss="modal">Close</button>
+        <a href="/mahasiswa/download/<%= tugas.id %>" class="btn btn-primary">Download</a>
+      </div>
+
+    </div>
+  </div>
+</div>
+

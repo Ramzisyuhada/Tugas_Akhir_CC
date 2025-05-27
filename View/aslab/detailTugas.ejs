@@ -1,0 +1,63 @@
+<%- include('../template/header_auth') %>  <!-- panggil header.ejs -->
+
+<!-- Begin Page Content -->
+<div class="container-fluid">
+
+  <!-- Page Heading -->
+  <div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800"><%= judul %></h1>
+  </div>
+
+  <div class="row">
+    <div class="col-md">
+      <a href="/aslab/kelola" class="btn btn-primary mb-4">Kembali</a>
+    </div>
+    <!-- 
+    <div class="col-md d-flex justify-content-end">
+      <a href="/aslab/pdf" class="btn btn-danger mb-4"><i class="fas fa-download"></i> Download</a>
+    </div>
+    -->
+  </div>
+
+  <div class="row">
+    <div class="col-md">
+      <% if (message && message.length > 0) { %>
+        <div class="alert alert-info"><%= message %></div>
+      <% } %>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md">
+      <% if (!task || task.length === 0) { %>
+        <div class="row">
+          <div class="col-md text-center text-success">
+            <h2>Ooopppsss!!! praktikan anda belum ada yang mengumpulkan, maklum belum deadline</h2>
+            <br>
+            <img style="width: 20%" src="/assets/img/cry1.png" class="card-img" alt="...">
+            <br>
+          </div>
+        </div>
+      <% } else { %>
+        <% task.forEach(function(t) { %>
+          <div class="card mt-3" style="width: 100%;">
+            <div class="card-body">
+              <h5 class="card-title"><%= t.nama %></h5>
+              <!-- <h6 class="card-subtitle mb-2 text-muted"><%= t.Title %></h6> -->
+              <p class="card-text"><%= t.file %></p>
+              <% if (t.nilai === 0) { %>
+                <p class="card-text text-danger">Belum memiliki nilai</p>
+              <% } else { %>
+                <p class="card-text"><%= t.nilai %></p>
+              <% } %>
+              <a class="btn btn-primary" href="/aslab/lihatTugas/<%= t.id %>">Lihat Tugas</a>
+            </div>
+          </div>
+        <% }) %>
+      <% } %>
+    </div>
+  </div>
+</div>
+<!-- /.container-fluid -->
+
+<!-- End of Main Content -->
