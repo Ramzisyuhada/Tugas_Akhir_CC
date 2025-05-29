@@ -3,7 +3,13 @@ const path = require('path');
 const cors = require('cors');
 const session = require('express-session');
 const flash = require('connect-flash');
-const { login, register } = require('./Controller/UserController');
+const { AddUser,Login } = require('./Controller/UserController');
+const multer = require('multer');
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
+const db = require('./db'); // import koneksi database
+
+const { AddKelas , GetAllKelas } = require('./Controller/KelasController');
 
 const app = express();
 
@@ -25,8 +31,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Global variables untuk views
 app.use((req, res, next) => {
-  res.locals.message = req.flash('message');
-  res.locals.errors = req.flash('errors')[0] || {};
+  const flashMsg = req.flash('message');
+  res.locals.message = flashMsg.length > 0 ? flashMsg[0] : null;  res.locals.errors = req.flash('errors')[0] || {};
   res.locals.formData = req.flash('formData')[0] || {};
   res.locals.token = req.flash('token')[0] || '';
   res.locals.menu = [{ id: 1, menu: 'Aslab' }];
@@ -51,7 +57,39 @@ app.set('views', path.join(__dirname, 'View'));
 app.get('/', (req, res) => {
   res.render('Auth/login', {
     errors: {},
-    nim: ''
+    nim: '',
+    message: res.locals.message
+
+  });
+});
+
+
+app.post('/Auth/registrasi', (req, res) => {
+  AddUser(req, res);
+});
+app.post('/tambahkelas', upload.single('image'),(req, res) => {
+  AddKelas(req, res);
+});
+app.post('/auth' , (req,res) => {
+  Login(req,res);
+})
+
+app.get('/kelas/image/:id', (req, res) => {
+  const id = req.params.id;
+
+  const sql = 'SELECT gambar FROM kelas WHERE id = ?';
+  db.con.query(sql, [id], (err, results) => {
+    if (err) return res.status(500).send('Error server');
+    if (results.length === 0) return res.status(404).send('Gambar tidak ditemukan');
+
+    const img = results[0].gambar;
+    if (!img) return res.status(404).send('Gambar tidak ditemukan');
+
+    res.writeHead(200, {
+      'Content-Type': 'image/jpeg', // sesuaikan jika gambarnya PNG atau lainnya
+      'Content-Length': img.length
+    });
+    res.end(img);
   });
 });
 
@@ -76,28 +114,32 @@ app.post('/login', (req, res) => {
   });
 });
 
-// Proses Register
-app.post('/register', register);
 
-// Dashboard
 app.get('/dashboard', (req, res) => {
   res.render('aslab/index', { judul: 'Home' });
 });
 
-// Tambah Kelas
+
 app.get('/tambahKelas', (req, res) => {
   res.render('aslab/tambahKelas', { judul: 'Tambah Kelas' });
 });
 
+app.get('/tambahTugas/:id_kelas', (req, res) => {
+  res.render('aslab/tambahTugas', { judul: 'Tambah Kelas' });
+});
+
 // Kelola Kelas
 app.get('/kelola', (req, res) => {
-  const dataKelas = [
-    { id: 1, nama_kelas: 'Kelas A', image: 'kelasA.jpg' },
-    { id: 2, nama_kelas: 'Kelas B', image: 'kelasB.jpg' }
-  ];
-  res.render('aslab/kelola', {
-    judul: 'Kelola Kelas',
-    kelas: dataKelas
+  GetAllKelas((err, dataKelas) => {
+    if (err) {
+      console.error('Gagal ambil data:', err);
+      return res.status(500).send('Gagal mengambil data kelas dari database.');
+    }
+
+    res.render('aslab/kelola', {
+      judul: 'Kelola Kelas',
+      kelas: dataKelas
+    });
   });
 });
 
@@ -121,8 +163,16 @@ app.get('/lihatKelas/:id', (req, res) => {
   });
 });
 
-// Detail Tugas (untuk Aslab)
-app.get('/detailTugas/:id', (req, res) => {
+
+app.get('/detailTugas/:id_kelas/:id_tugas', (req, res) => {
+  const { id_kelas, id_tugas } = req.params;
+
+  const tugas = {
+    id: id_tugas,
+    title: 'Tugas ' + id_tugas,
+    batas_waktu: Date.now() + 86400000 // 1 hari ke depan
+  };
+
   const task = [
     { id: 1, nama: 'Andi', file: 'Tugas1_Andi.pdf', nilai: 0 },
     { id: 2, nama: 'Budi', file: 'Tugas1_Budi.pdf', nilai: 85 }
@@ -130,11 +180,13 @@ app.get('/detailTugas/:id', (req, res) => {
 
   res.render('aslab/detailTugas', {
     judul: 'Daftar Pengumpulan Tugas',
-    task
+    tugas,
+    task,
+    id_kelas
   });
 });
 
-// Lihat Tugas Spesifik
+
 app.get('/lihatTugas/:id_task', (req, res) => {
   const task = {
     nama: 'Tugas 1',

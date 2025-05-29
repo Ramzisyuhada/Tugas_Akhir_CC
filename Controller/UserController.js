@@ -1,64 +1,125 @@
-const pool = require('../db'); // import koneksi database
+const db = require('../db'); // import koneksi database
 
-async function loginUser(email, password) {
-  try {
-    const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+function AddUser(req, res) {
+  var nama = req.body.nama;
+  var nim = req.body.nim;
+  var email = req.body.email;
+  var jurusan = "Teknik Informatika"; // tetap sama
+  var nomortelepon = req.body.no_telp;
+  var alamat = req.body.alamat;
+  var password = req.body.password1;
+  var password2 = req.body.password2;
 
-    if (result.rows.length === 0) {
-      return { success: false, status: 401, message: 'Email tidak ditemukan' };
-    }
+  let errors = {};
 
-    const user = result.rows[0];
 
-    // Password plain text check (harusnya pake hashing seperti bcrypt)
-    if (password !== user.password) {
-      return { success: false, status: 401, message: 'Password salah' };
-    }
+  if (!nama || nama.trim() === '') errors.nama = { msg: 'Nama wajib diisi' };
+  if (!nim || nim.trim() === '') errors.nim = { msg: 'NIM wajib diisi' };
+  if (!email || email.trim() === '') errors.email = { msg: 'Email wajib diisi' };
+  else if (!email.includes('@')) errors.email = { msg: 'Format email tidak valid' };
+  if (!jurusan || jurusan.trim() === '') errors.jurusan = { msg: 'Jurusan wajib diisi' };
+  if (!nomortelepon || nomortelepon.trim() === '') errors.no_telp = { msg: 'Nomor telepon wajib diisi' };
+  if (!alamat || alamat.trim() === '') errors.alamat = { msg: 'Alamat wajib diisi' };
+  if (!password) errors.password1 = { msg: 'Password wajib diisi' };
+  if (!password2) errors.password2 = { msg: 'Ulangi password wajib diisi' };
+  if (password && password2 && password !== password2) errors.password2 = { msg: 'Password tidak cocok' };
 
-    return { success: true, status: 200, message: 'Login berhasil', role: user.role };
-  } catch (err) {
-    console.error('Login error:', err.message);
-    return { success: false, status: 500, message: 'Server Error' };
+  if (Object.keys(errors).length > 0) {
+    return res.render('Auth/register', {
+      formData: req.body,
+      errors: errors
+    });
   }
-}
 
-// Controller untuk route login, menerima req dan res dari Express
-async function login(req, res) {
-  const { email, password } = req.body;
+  // Cek di database apakah nama, nomor telepon, dan email sudah ada
+  const cekQuery = `SELECT * FROM mahasiswa WHERE nama = ? OR nomortelepon = ? OR email = ?`;
+  const cekValues = [nama, nomortelepon, email];
 
-  const result = await loginUser(email, password);
+  db.con.query(cekQuery, cekValues, function(err, results) {
+    if (err) {
+      console.error(err);
+      return res.status(500).send('Terjadi kesalahan server saat pengecekan data.');
+    }
 
-  res.status(result.status).json(result);
-}
-async function registerUser(email, password, role) {
-    try {
-      // Cek apakah email sudah terdaftar
-      const checkEmail = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
-  
-      if (checkEmail.rows.length > 0) {
-        return { success: false, status: 409, message: 'Email sudah terdaftar' };
+    // Jika ada hasil, berarti salah satu sudah terdaftar
+    if (results.length > 0) {
+      results.forEach(user => {
+        if (user.nama === nama) {
+          errors.nama = { msg: 'Nama sudah terdaftar' };
+        }
+        if (user.nomortelepon === nomortelepon) {
+          errors.no_telp = { msg: 'Nomor telepon sudah terdaftar' };
+        }
+        if (user.email === email) {
+          errors.email = { msg: 'Email sudah terdaftar' };
+        }
+      });
+
+      return res.render('Auth/register', {
+        formData: req.body,
+        errors: errors
+      });
+    }
+
+    // Jika semua validasi lolos, insert data baru
+    var sql = "INSERT INTO mahasiswa (nama, nim, email, jurusan, nomortelepon, alamat, password) VALUES (?, ?, ?, ?, ?, ?, ?)";
+    var values = [nama, nim, email, jurusan, nomortelepon, alamat, password];
+
+    db.con.query(sql, values, function(err, result) {
+      if (err) {
+        console.error(err);
+        return res.status(500).send('Gagal menyimpan data');
       }
-  
-      // Simpan user ke database (disarankan: enkripsi password dengan bcrypt)
-      await pool.query(
-        'INSERT INTO users (email, password, role) VALUES ($1, $2, $3)',
-        [email, password, role]
-      );
-  
-      return { success: true, status: 201, message: 'Registrasi berhasil' };
-    } catch (err) {
-      console.error('Register error:', err.message);
-      return { success: false, status: 500, message: 'Server Error' };
+      req.flash('message', 'Registrasi berhasil! Silakan login.');
+
+      res.redirect('/');
+    });
+  });
+}
+
+function Login(req, res){
+  const Nim = req.body.nim;
+  const Password = req.body.password;
+
+  if (!Nim || Nim.trim() === '') {
+    req.flash('message', 'Nim Tidak Boleh Kosong.');
+
+    return res.redirect('/');
+  }
+  if (!Password || Password.trim() === '') {
+    req.flash('message', 'Password Tidak Boleh Kosong.');
+
+    return res.redirect('/');
+  }
+  if ((!Password || Password.trim() === '') && (!Nim || Nim.trim() === '')) {
+    req.flash('message', 'Password dan Nim Tidak Boleh Kosong.');
+
+    return res.redirect('/');
+  }
+
+  var sql = `SELECT * FROM mahasiswa WHERE password = ?`
+  db.con.query(sql,Password, function(err, result){
+    if (err) {
+      console.error(err);
+      return res.status(500).send('Terjadi kesalahan server saat pengecekan data.');
     }
-  }
+    if (result.length === 0) {
+      req.flash('message', 'NIM atau password salah.');
+      return res.redirect('/');
+    }
+    const user = result[0];
+    const role = user.role; 
+
+    req.session.user = {
+      nim: user.nim,
+      role: role,
+    };
+    if (role === '2') {
+      res.redirect('/mahasiswa');
+    } else {
+      res.redirect('/kelola');
+    }
+  })  
+}
   
-  // Controller untuk route register
-  async function register(req, res) {
-    const { email, password, role } = req.body;
-  
-    const result = await registerUser(email, password, role);
-  
-    res.status(result.status).json(result);
-  }
-  
-module.exports = { login ,register};
+module.exports = { AddUser , Login };

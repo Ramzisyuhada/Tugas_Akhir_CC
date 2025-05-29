@@ -1,15 +1,19 @@
-const { Pool } = require('pg');
-require('dotenv').config();
+var mysql = require('mysql');
 
-const pool = new Pool({
-  host: process.env.DB_HOST,
-  port: process.env.DB_PORT,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-  ssl: {
-    rejectUnauthorized: false 
-  }
+
+//Menghubungkan DataBase 
+var con = mysql.createConnection({
+  host: "localhost", //Host nya
+  user: "root", // Nama User nya
+  password: "", // Password nya 
+  database : "tugasakhir_cc"
 });
 
-module.exports = pool;
+
+con.connect(function(err) {
+  if (err) throw err;
+  console.log("Connected!");
+});
+
+
+module.exports = { con };
