@@ -68,4 +68,24 @@ function AddKelas(req, res) {
     callback(null, results);
   });
   }
-module.exports = { AddKelas,GetAllKelas  };
+
+  function IkutiKelas(mahasiswa_id,req, res){
+    
+    const sql = `INSERT INTO kelas_mahasiswa (mahasiswa_id, kelas_id, status)
+    VALUES (?, ?, ?);
+    `;
+
+    const values = [mahasiswa_id, req.params.id, "aktif"];
+    db.con.query(sql, values, function (err, result) {
+      if (err) {
+        console.error(err);
+        return res.status(500).send('Gagal menyimpan data');
+      }
+  
+      req.flash('message', 'Kelas Berhasil Ditambahkan!');
+      res.redirect('/mahasiswa');
+    });
+
+    
+  }
+module.exports = { AddKelas,GetAllKelas ,IkutiKelas };

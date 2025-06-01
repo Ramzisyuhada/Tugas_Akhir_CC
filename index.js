@@ -9,7 +9,8 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 const db = require('./db'); // import koneksi database
 
-const { AddKelas , GetAllKelas } = require('./Controller/KelasController');
+const { AddKelas , GetAllKelas ,IkutiKelas} = require('./Controller/KelasController');
+const { GetTugas } = require('./Controller/TugasController');
 
 const app = express();
 
@@ -70,15 +71,20 @@ app.post('/Auth/registrasi', (req, res) => {
 app.post('/tambahkelas', upload.single('image'),(req, res) => {
   AddKelas(req, res);
 });
+var id ;
 app.post('/auth' , (req,res) => {
-  Login(req,res);
-})
+  Login(req,res , (err ,data)  => {
+    id = data.id;
 
+  });
+})
+console.log(id);
 app.get('/kelas/image/:id', (req, res) => {
   const id = req.params.id;
 
   const sql = 'SELECT gambar FROM kelas WHERE id = ?';
-  db.con.query(sql, [id], (err, results) => {
+  db.con.query(sql, 
+    [id], (err, results) => {
     if (err) return res.status(500).send('Error server');
     if (results.length === 0) return res.status(404).send('Gambar tidak ditemukan');
 
@@ -121,15 +127,51 @@ app.get('/dashboard', (req, res) => {
 
 
 app.get('/tambahKelas', (req, res) => {
-  res.render('aslab/tambahKelas', { judul: 'Tambah Kelas' });
+  res.render('aslab/tambahKelas', { judul: 'Tambah Kelas'
+    
+   });
 });
 
 app.get('/tambahTugas/:id_kelas', (req, res) => {
-  res.render('aslab/tambahTugas', { judul: 'Tambah Kelas' });
+  const id_kelas = req.params.id_kelas;
+  res.render('aslab/tambahTugas', {
+    judul: 'Tambah Kelas',
+    id_kelas: id_kelas,
+    k
+  });
+
 });
+
+  
+var globalkelas = []
+app.get('/mahasiswa/tambahKelas' , (req,res) => {
+  res.render('mahasiswa/tambahKelas', {
+    judul : "Tambah Kelas",
+    kelas  : globalkelas,
+    aslab : []
+  });
+
+});
+
+app.get('/mahasiswa/tambahKelas/:id', (req,res) => {
+  IkutiKelas(id,req,res , (err,datakelas) => { 
+    if (err) {
+      console.error('Gagal ambil data:', err);
+      return res.status(500).send('Gagal mengambil data kelas dari database.');
+    }
+    globalkelas = datakelas;
+    res.render('mahasiswa/detailKelas', {
+      judul: 'Tambah Kelas',
+      kelas: id_kelas,
+      kelas :  datakelas
+    });
+  
+  });
+})
 
 // Kelola Kelas
 app.get('/kelola', (req, res) => {
+  
   GetAllKelas((err, dataKelas) => {
     if (err) {
       console.error('Gagal ambil data:', err);
@@ -143,25 +185,71 @@ app.get('/kelola', (req, res) => {
   });
 });
 
-// Detail Kelas (untuk Aslab)
-app.get('/lihatKelas/:id', (req, res) => {
-  const kelas = {
-    id: req.params.id,
-    nama_kelas: 'Pemrograman Web',
-    image: 'kelasweb.jpg'
-  };
+app.get('/kelas/image/:id', (req, res) => {
+  const id = req.params.id;
 
-  const tugas = [
-    { id: 1, Title: 'Tugas 1', batas_waktu: 1716643200 },
-    { id: 2, Title: 'Tugas 2', batas_waktu: 1717003200 }
-  ];
+  const sql = 'SELECT gambar FROM kelas WHERE id = ?';
+  db.con.query(sql, [id], (err, result) => {
+    if (err || result.length === 0) {
+      return res.status(404).send('Gambar tidak ditemukan');
+    }
 
-  res.render('aslab/lihatKelas', {
-    judul: 'Kelola Kelas',
-    kelas,
-    tugas
+    res.setHeader('Content-Type', 'image/jpeg'); // sesuaikan jika PNG
+    res.send(result[0].gambar);
   });
 });
+
+app.get('/lihatKelas/:id', (req, res) => {
+  const idKelas = req.params.id;
+
+  GetAllKelas((err, dataKelas) => {
+    if (err) {
+      console.error('Gagal ambil data kelas:', err);
+      return res.status(500).send('Gagal mengambil data kelas.');
+    }
+
+    const kelas = dataKelas.find(k => k.id == idKelas);
+
+    if (!kelas) {
+      return res.status(404).send('Kelas tidak ditemukan.');
+    }
+
+    GetTugas(idKelas, (err, dataTugas) => {
+      if (err) {
+        console.error('Gagal ambil tugas:', err);
+        return res.status(500).send('Gagal mengambil data tugas.');
+      }
+
+      res.render('aslab/lihatKelas', {
+        judul: 'Kelola Kelas',
+        kelas: kelas,
+        tugas: dataTugas
+      });
+    });
+  });
+});
+
+
+// Detail Kelas (untuk Aslab)
+// app.get('/lihatKelas/:id', (req, res) => {
+//   const kelas = {
+//     id: req.params.id,
+//     nama_kelas: 'Pemrograman Web',
+//     image: 'kelasweb.jpg'
+//   };
+
+//   const tugas = [
+//     { id: 1, Title: 'Tugas 1', batas_waktu: 1716643200 },
+//     { id: 2, Title: 'Tugas 2', batas_waktu: 1717003200 }
+//   ];
+
+  
+//   res.render('aslab/lihatKelas', {
+//     judul: 'Kelola Kelas',
+//     kelas,
+//     tugas
+//   });
+// });
 
 
 app.get('/detailTugas/:id_kelas/:id_tugas', (req, res) => {
@@ -205,14 +293,23 @@ app.get('/lihatTugas/:id_task', (req, res) => {
 
 // Mahasiswa - Katalog Kelas
 app.get('/mahasiswa', (req, res) => {
-  const kelas = [
-    { id: 1, nama_kelas: 'Kelas A', image: 'kelasA.jpg', deskripsi: 'Belajar dasar pemrograman' },
-    { id: 2, nama_kelas: 'Kelas B', image: 'kelasB.jpg', deskripsi: 'Lanjutan pemrograman' }
-  ];
 
-  res.render('mahasiswa/katalogKelas', {
-    judul: 'Katalog Kelas',
-    kelas
+  GetAllKelas((err, dataKelas) => {
+    if (err) {
+      console.error('Gagal ambil data:', err);
+      return res.status(500).send('Gagal mengambil data kelas dari database.');
+    }
+    res.render('mahasiswa/katalogKelas', {
+      judul: 'Katalog Kelas',
+      kelas : dataKelas
+    });
+  
+  //   res.render('aslab/kelola', {
+  //     judul: 'Kelola Kelas',
+  //     kelas: dataKelas
+  //   });
+  // });
+  
   });
 });
 

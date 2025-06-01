@@ -10,7 +10,7 @@
       <div class="row">
         <div class="col-md-4">
           <div class="card" style="width: 100%;">
-            <img class="card-img-top" src="/assets/img/class/default.jpg" alt="Card image cap">
+            <img id="previewImage" class="card-img-top" src="/uploads/tugas/default.jpg" alt="Card image cap" />
           </div>
           <div class="custom-file mt-3">
             <input type="file" class="custom-file-input" id="image" name="image">
@@ -60,4 +60,20 @@
       </div>
     </form>
   </div>
+  <script>
+    const inputImage = document.getElementById('image');
+    const preview = document.getElementById('previewImage');
   
+    inputImage.addEventListener('change', function(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+  
+        reader.onload = function(e) {
+          preview.src = e.target.result;
+        }
+  
+        reader.readAsDataURL(file);
+      }
+    });
+  </script>

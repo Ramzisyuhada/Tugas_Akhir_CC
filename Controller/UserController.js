@@ -1,5 +1,6 @@
 const db = require('../db'); // import koneksi database
 
+
 function AddUser(req, res) {
   var nama = req.body.nama;
   var nim = req.body.nim;
@@ -31,7 +32,6 @@ function AddUser(req, res) {
     });
   }
 
-  // Cek di database apakah nama, nomor telepon, dan email sudah ada
   const cekQuery = `SELECT * FROM mahasiswa WHERE nama = ? OR nomortelepon = ? OR email = ?`;
   const cekValues = [nama, nomortelepon, email];
 
@@ -77,7 +77,7 @@ function AddUser(req, res) {
   });
 }
 
-function Login(req, res){
+function Login(req, res,callback){
   const Nim = req.body.nim;
   const Password = req.body.password;
 
@@ -109,7 +109,6 @@ function Login(req, res){
     }
     const user = result[0];
     const role = user.role; 
-
     req.session.user = {
       nim: user.nim,
       role: role,
@@ -119,6 +118,8 @@ function Login(req, res){
     } else {
       res.redirect('/kelola');
     }
+    callback(null, user);
+
   })  
 }
   

@@ -23,7 +23,7 @@
             <% kelas.forEach(k => { %>
                 <div class="col-md-3 pt-3">
                     <div class="card" style="width: 15.5rem;">
-                        <img height="250px" class="card-img-top" src="/assets/img/class/<%= k.image %>" alt="Gambar Kelas">
+                        <img height="250px" class="card-img-top" src="/kelas/image/<%= k.id %>" alt="Gambar Kelas">
                         <div class="card-body">
                             <h5 class="card-title"><%= k.nama_kelas %></h5>
                             <p class="card-text"><%= k.deskripsi || '' %></p>
