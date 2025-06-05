@@ -2,15 +2,29 @@ const express = require('express');
 const path = require('path');
 const cors = require('cors');
 const session = require('express-session');
+const { body, validationResult } = require('express-validator');
+
 const flash = require('connect-flash');
 const { AddUser,Login } = require('./Controller/UserController');
 const multer = require('multer');
 const storage = multer.memoryStorage();
-const upload = multer({ storage: storage });
-const db = require('./db'); // import koneksi database
 
-const { AddKelas , GetAllKelas ,IkutiKelas} = require('./Controller/KelasController');
-const { GetTugas } = require('./Controller/TugasController');
+const upload = multer({ storage: storage });
+const db = require('./db');
+const AWS = require('aws-sdk');
+const fs = require('fs');
+
+AWS.config.update({
+  accessKeyId: '',
+  secretAccessKey: '',
+  region: 'ap-southeast-2'
+});
+const s3 = new AWS.S3();
+const uploads_file = multer({ dest: 'uploads/' });
+
+
+const { AddKelas ,GetKelasSaya ,GetKelasClick,GetAllKelas ,IkutiKelas,GetKelasMahasiswa,GetAllKelasPraktikan,GetKelas} = require('./Controller/KelasController');
+const { GetTugas,PengumpulanTugas,GetTugasByID,GetTask,GetPengumpulanTugasAdmin ,AddTugas,GetPengumpulanTugas,SetNilai} = require('./Controller/TugasController');
 
 const app = express();
 
@@ -33,26 +47,76 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Global variables untuk views
 app.use((req, res, next) => {
   const flashMsg = req.flash('message');
-  res.locals.message = flashMsg.length > 0 ? flashMsg[0] : null;  res.locals.errors = req.flash('errors')[0] || {};
+  res.locals.message = flashMsg.length > 0 ? flashMsg[0] : null;
+  res.locals.errors = req.flash('errors')[0] || {};
   res.locals.formData = req.flash('formData')[0] || {};
   res.locals.token = req.flash('token')[0] || '';
-  res.locals.menu = [{ id: 1, menu: 'Aslab' }];
-  res.locals.submenu = [
-    { id: 1, menu_id: 1, title: 'Kelola Kelas', url: 'kelola', icon: 'fas fa-users', is_active: 1 },
-    { id: 2, menu_id: 1, title: 'Tambah Kelas', url: 'tambahKelas', icon: 'fas fa-plus', is_active: 1 },
-  ];
-  res.locals.user = {
-    nama: 'Budi Santoso',
-    foto: 'budi.jpg'
+
+  // Cek role user dari session
+  const role = req.session.user?.role || null;
+
+  if (role === 'aslab') {
+    res.locals.menu = [{ id: 1, menu: 'Aslab' }];
+    res.locals.submenu = [
+      { id: 1, menu_id: 1, title: 'Kelola Kelas', url: 'kelola', icon: 'fas fa-users', is_active: 1 },
+      { id: 2, menu_id: 1, title: 'Tambah Kelas', url: 'tambahKelas', icon: 'fas fa-plus', is_active: 1 },
+    ];
+  } else if (role === 'praktikan') {
+    res.locals.menu = [{ id: 2, menu: 'Praktikan' }];
+    res.locals.submenu = [
+      { id: 3, menu_id: 2, title: 'Kelas', url: 'mahasiswa', icon: 'fas fa-book', is_active: 1 },
+      { id: 4, menu_id: 2, title: 'Kelas Saya', url: 'mahasiswa/kelasSaya', icon: 'fas fa-user', is_active: 1 },
+    ];
+  } else {
+    res.locals.menu = [];
+    res.locals.submenu = [];
+  }
+
+  res.locals.user = req.session.user || {
+    nama: 'Guest',
+    foto: 'default.jpg',
   };
+
   next();
 });
+
+var globalkelas = []
 
 // View engine setup
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'View'));
 
 // ================= ROUTES =================
+app.post('/aslab/tambahTugas/:id', upload.single('example'), [ body('title').notEmpty().withMessage('Judul tidak boleh kosong'),
+body('description').notEmpty().withMessage('Deskripsi tidak boleh kosong'),
+body('bts_waktu').notEmpty().withMessage('Tenggang waktu tidak boleh kosong')],(req, res) => {
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    return res.render('aslab/tambahTugas', {
+      judul: 'Tambah Tugas',
+      id_kelas: req.params.id,
+      errors: errors.mapped(),
+      formData: req.body
+    });
+  }
+  const fileContent = req.file.buffer;
+  const params = {
+    Bucket: 'ramzisyuhadabucket12',
+    Key: req.file.originalname,
+    Body: fileContent
+  };
+
+  s3.upload(params, function(err, data) {
+    if (err) {
+      return res.status(500).send("Error saat mengunggah file");
+    }
+
+    const linkfileaws = data.Location;
+    AddTugas(linkfileaws,req,res);
+
+  });
+});
 
 // Login Page
 app.get('/', (req, res) => {
@@ -68,12 +132,17 @@ app.get('/', (req, res) => {
 app.post('/Auth/registrasi', (req, res) => {
   AddUser(req, res);
 });
-app.post('/tambahkelas', upload.single('image'),(req, res) => {
-  AddKelas(req, res);
+app.post('/mahasiswa/tambahTugas', (req, res) => {
+  IkutiKelas(id,idkelass,req, res);
 });
+
+app.post('/tambahkelas', upload.single('image') ,(req, res) => {
+  AddKelas(id,req, res);
+});
+
 var id ;
 app.post('/auth' , (req,res) => {
-  Login(req,res , (err ,data)  => {
+  Login(req,res,(err ,data)  => {
     id = data.id;
 
   });
@@ -109,7 +178,7 @@ app.get('/Auth/register', (req, res) => {
 
 // Proses Login
 app.post('/login', (req, res) => {
-  login(req, res, (err, success) => {
+  Login(req, res, (err, success) => {
     if (err) {
       req.flash('message', err);
       return res.redirect('/');
@@ -127,23 +196,26 @@ app.get('/dashboard', (req, res) => {
 
 
 app.get('/tambahKelas', (req, res) => {
-  res.render('aslab/tambahKelas', { judul: 'Tambah Kelas'
-    
+  var dataaslab =[]
+  // GetKelasMahasiswa(idkelas,(err, dataKelas) => {
+  //   dataaslab = dataKelas
+  // });
+  res.render('aslab/tambahKelas', { judul: 'Tambah Kelas',
+      aslab : dataaslab
    });
 });
 
 app.get('/tambahTugas/:id_kelas', (req, res) => {
   const id_kelas = req.params.id_kelas;
   res.render('aslab/tambahTugas', {
-    judul: 'Tambah Kelas',
+    judul: 'Tambah Tugas',
     id_kelas: id_kelas,
-    k
+    t : []
   });
 
 });
 
   
-var globalkelas = []
 app.get('/mahasiswa/tambahKelas' , (req,res) => {
   res.render('mahasiswa/tambahKelas', {
     judul : "Tambah Kelas",
@@ -152,27 +224,68 @@ app.get('/mahasiswa/tambahKelas' , (req,res) => {
   });
 
 });
+var idkelasglobal;
+app.get('/mahasiswa/tambahKelas/:idkelas', (req, res) => {
+  const idkelas = req.params.idkelas;
+ // const userId = req.session.userId;
+ req.session.idkelas = req.params.idkelas;
 
-app.get('/mahasiswa/tambahKelas/:id', (req,res) => {
-  IkutiKelas(id,req,res , (err,datakelas) => { 
+ idkelasglobal = idkelas;
+  if (!id) {
+    return res.redirect('/');
+  }
+
+  // Pertama ambil info aslab-nya dulu
+  GetKelasMahasiswa(idkelas, (err, dataAslab) => {
     if (err) {
-      console.error('Gagal ambil data:', err);
-      return res.status(500).send('Gagal mengambil data kelas dari database.');
+      console.error('Gagal ambil data aslab:', err);
+      return res.status(500).send('Gagal mengambil data aslab.');
     }
-    globalkelas = datakelas;
-    res.render('mahasiswa/detailKelas', {
-      judul: 'Tambah Kelas',
-      kelas: id_kelas,
-      kelas :  datakelas
-    });
-  
+
+    
+    // IkutiKelas(id,idkelas, req, res, (err, dataKelas) => {
+    //   if (err) {
+    //     console.error('Gagal ambil data kelas:', err);
+    //     return res.status(500).send('Gagal mengambil data kelas.');
+    //   }
+    //   IkutiKelas(id, idkelas, req, res); // Di dalam ini sudah ada res.redirect
+
+    // });
   });
-})
+});
+var idkelass;
+
+var gambar;
+app.get('/mahasiswa/ikutiKelas/:idkelas', (req, res) => {
+  const idkelas = req.params.idkelas;
+  idkelass = idkelas;
+
+  if (!id) {
+    return res.redirect('/');
+  }
+
+  GetKelasMahasiswa(idkelas, (err, dataAslab) => {
+    if (err) {
+      console.error('Gagal ambil data aslab:', err);
+      return res.status(500).send('Gagal mengambil data aslab.');
+    }
+    console.log(dataAslab);
+    res.render('mahasiswa/tambahKelas', {
+      judul: 'Tambah Kelas',
+      kelas: dataAslab,
+      aslab: dataAslab ,
+      id_kelas: idkelass // <-- kirim variabel id_kelas di sini
+      // atau sesuaikan sesuai data
+    });
+  });
+});
+
+
 
 // Kelola Kelas
 app.get('/kelola', (req, res) => {
   
-  GetAllKelas((err, dataKelas) => {
+  GetAllKelas(id,(err, dataKelas) => {
     if (err) {
       console.error('Gagal ambil data:', err);
       return res.status(500).send('Gagal mengambil data kelas dari database.');
@@ -184,7 +297,19 @@ app.get('/kelola', (req, res) => {
     });
   });
 });
+app.get('/gambarAslab/:id', (req,res) => {
+  const id = req.params.id; // ambil id dari url param
 
+  const sql = 'SELECT gambar FROM kelas WHERE id = ?';
+  db.con.query(sql, [id], (err, result) => {
+    if (err || result.length === 0) {
+      return res.status(404).send('Gambar tidak ditemukan');
+    }
+    console.log("Hello");
+    res.setHeader('Content-Type', 'image/jpeg'); // sesuaikan jika PNG
+    res.send(result[0].gambar);
+  });
+})
 app.get('/kelas/image/:id', (req, res) => {
   const id = req.params.id;
 
@@ -202,7 +327,7 @@ app.get('/kelas/image/:id', (req, res) => {
 app.get('/lihatKelas/:id', (req, res) => {
   const idKelas = req.params.id;
 
-  GetAllKelas((err, dataKelas) => {
+  GetKelas((err, dataKelas) => {
     if (err) {
       console.error('Gagal ambil data kelas:', err);
       return res.status(500).send('Gagal mengambil data kelas.');
@@ -215,6 +340,7 @@ app.get('/lihatKelas/:id', (req, res) => {
     }
 
     GetTugas(idKelas, (err, dataTugas) => {
+      
       if (err) {
         console.error('Gagal ambil tugas:', err);
         return res.status(500).send('Gagal mengambil data tugas.');
@@ -225,6 +351,8 @@ app.get('/lihatKelas/:id', (req, res) => {
         kelas: kelas,
         tugas: dataTugas
       });
+      
+
     });
   });
 });
@@ -265,89 +393,126 @@ app.get('/detailTugas/:id_kelas/:id_tugas', (req, res) => {
     { id: 1, nama: 'Andi', file: 'Tugas1_Andi.pdf', nilai: 0 },
     { id: 2, nama: 'Budi', file: 'Tugas1_Budi.pdf', nilai: 85 }
   ];
-
+  GetPengumpulanTugas(req,res,(err,datatugas) => {
+    if (err) {
+      console.error('Gagal ambil tugas:', err);
+      return res.status(500).send('Gagal mengambil data tugas.');
+    }
   res.render('aslab/detailTugas', {
     judul: 'Daftar Pengumpulan Tugas',
-    tugas,
-    task,
-    id_kelas
+    task : datatugas
   });
+  })
 });
 
-
+app.post('/aslab/lihatTugas/:id',(req,res) => {
+    SetNilai(req ,res);
+})
 app.get('/lihatTugas/:id_task', (req, res) => {
-  const task = {
-    nama: 'Tugas 1',
-    file: 'tugas1.pdf',
-    nilai: 0
-  };
+  // const task = {
+  //   nama: 'Tugas 1',
+  //   file: 'tugas1.pdf',
+  //   nilai: 0
+  // };
   const id_task = req.params.id_task;
-
-  res.render('aslab/lihatTugas', {
-    judul: 'Lihat Tugas',
-    task,
-    id_task,
-    errors: {}
-  });
+  GetPengumpulanTugasAdmin(req,res ,(err,DataTugas) => {
+    
+    res.render('aslab/lihatTugas', {
+      judul: 'Lihat Tugas',
+      task : DataTugas,
+      id_task,
+      errors: {}
+    });
+  })
+  
 });
 
 // Mahasiswa - Katalog Kelas
 app.get('/mahasiswa', (req, res) => {
 
-  GetAllKelas((err, dataKelas) => {
+  GetAllKelasPraktikan((err, dataKelas) => {
     if (err) {
       console.error('Gagal ambil data:', err);
       return res.status(500).send('Gagal mengambil data kelas dari database.');
     }
+    
     res.render('mahasiswa/katalogKelas', {
       judul: 'Katalog Kelas',
-      kelas : dataKelas
+      kelas : dataKelas,
+     
     });
   
-  //   res.render('aslab/kelola', {
-  //     judul: 'Kelola Kelas',
-  //     kelas: dataKelas
-  //   });
-  // });
   
   });
 });
 
-// Mahasiswa - Kelas Saya
+
 app.get('/mahasiswa/kelasSaya', (req, res) => {
-  const kelasSaya = req.session.kelasSaya || [];
-  const flashMessage = req.flash('message');
-
-  res.render('mahasiswa/kelasSaya', {
-    judul: 'Kelas Saya',
-    kelas: kelasSaya,
-    message: flashMessage.length > 0 ? flashMessage[0] : ''
-  });
+  GetKelasSaya(id,req,res ,(err,result) => {
+    res.render('mahasiswa/kelasSaya', {
+      judul: 'Kelas Saya',
+      kelas: result,
+      message: req.flash('message','Berhasil Ditambahkan')
+    });
+  })
+  
 });
+//Mahasiswa - Post Tugas 
+app.post('/mahasiswa/kumpulTugas',upload.single('file'), (req,res) => {
+ 
+  const fileContent = req.file.buffer;
+  const params = {
+    Bucket: 'ramzisyuhadabucket12',
+    Key: req.file.originalname,
+    Body: fileContent
+  };
 
+  s3.upload(params, function(err, data) {
+    if (err) {
+      return res.status(500).send("Error saat mengunggah file");
+    }
+
+    const linkfileaws = data.Location;
+    PengumpulanTugas(id,linkfileaws,req,res);
+
+  });
+})
+//Mahasiswa - Detail Tugas
+app.get('/mahasiswa/detailTugas/:id' , (req,res) => {
+  const tugasId = req.params.id;
+  GetTugasByID(tugasId, (err,DataTugas) => {
+    GetTask(id,tugasId,(err,DataTask) => {
+      res.render('mahasiswa/detailTugas', {
+        judul : "Tugas Saya",
+        tugas : DataTugas,
+        task : DataTask
+      });
+    })
+  })
+})
 // Mahasiswa - Detail Kelas
 app.get('/mahasiswa/detailKelas/:id', (req, res) => {
   const kelasId = req.params.id;
 
-  const kelas = {
-    id: kelasId,
-    nama_kelas: 'Pemrograman Web',
-    image: 'web.png'
-  };
-
-  const tugas = [
-    {
-      id: 1,
-      Title: 'Tugas HTML',
-      batas_waktu: Date.now() + 86400000
+  GetKelasClick(kelasId,  (err, DataKelas) => {
+    if (err) {
+      return res.status(500).send('Gagal mengambil data kelas');
     }
-  ];
 
-  res.render('mahasiswa/detailKelas', {
-    judul: 'Detail Kelas',
-    kelas,
-    tugas,
-    message: req.flash('message')
+    GetTugas(kelasId, (err, DataTugas) => {
+      if (err) {
+        return res.status(500).send('Gagal mengambil data tugas');
+      }
+
+      console.log("Parameter ini adalah : " + JSON.stringify(DataKelas));
+
+      res.render('mahasiswa/detailKelas', {
+        judul: 'Detail Kelas',
+        kelas: DataKelas,
+        tugas: DataTugas,
+        message: req.flash('message')
+      });
+    });
   });
 });
 

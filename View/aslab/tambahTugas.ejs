@@ -8,15 +8,15 @@
 
   <form action="/aslab/tambahTugas/<%= id_kelas %>" method="POST" enctype="multipart/form-data">
     <div class="row">
-      <div class="col-md-4">
+      <!-- <div class="col-md-4">
         <div class="card" style="width: 100%;">
-          <img class="card-img-top" src="/uploads/tugas/<%= t.image %>" alt="Card image cap">
+          <img id="previewImage" src="/uploads/tugas/<%= t.image %>" alt="Card image cap">
         </div>
         <div class="custom-file mt-4">
           <input type="file" class="custom-file-input" id="image" name="image" />
           <label class="custom-file-label" for="image">Choose file</label>
         </div>
-      </div>
+      </div> -->
 
       <div class="col-md-8">
         <div class="form-group">
@@ -45,6 +45,7 @@
 
         <div class="form-group">
           <div class="custom-file">
+            
             <input type="file" class="custom-file-input" id="example" name="example" />
             <label class="custom-file-label" for="example">Example</label>
           </div>
@@ -61,3 +62,34 @@
   </form>
 
 </div>
+<script>
+  const inputFile = document.getElementById('example');
+  const labelFile = document.querySelector('label[for="example"]');
+  const preview = document.getElementById('previewImage');
+
+  inputFile.addEventListener('change', function(event) {
+    const file = event.target.files[0];
+
+    if (file) {
+      // Update label file input dengan nama file yang dipilih
+      labelFile.textContent = file.name;
+
+      // Jika mau preview gambar (jika file gambar)
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          if (preview) {
+            preview.src = e.target.result;
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+    } else {
+      // Reset label jika tidak ada file
+      labelFile.textContent = 'Pilih file contoh...';
+      if (preview) {
+        preview.src = ''; // Atau gambar default
+      }
+    }
+  });
+</script>

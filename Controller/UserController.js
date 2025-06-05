@@ -77,50 +77,56 @@ function AddUser(req, res) {
   });
 }
 
-function Login(req, res,callback){
-  const Nim = req.body.nim;
+function Login(req, res, callback) {
   const Password = req.body.password;
+  const Nim = req.body.nim;
 
+  // Validasi input
   if (!Nim || Nim.trim() === '') {
     req.flash('message', 'Nim Tidak Boleh Kosong.');
-
     return res.redirect('/');
   }
   if (!Password || Password.trim() === '') {
     req.flash('message', 'Password Tidak Boleh Kosong.');
-
-    return res.redirect('/');
-  }
-  if ((!Password || Password.trim() === '') && (!Nim || Nim.trim() === '')) {
-    req.flash('message', 'Password dan Nim Tidak Boleh Kosong.');
-
     return res.redirect('/');
   }
 
-  var sql = `SELECT * FROM mahasiswa WHERE password = ?`
-  db.con.query(sql,Password, function(err, result){
+  var sql = `SELECT * FROM mahasiswa WHERE nim = ? AND password = ?`;
+  db.con.query(sql, [Nim, Password], function(err, result) {
     if (err) {
       console.error(err);
       return res.status(500).send('Terjadi kesalahan server saat pengecekan data.');
     }
+
     if (result.length === 0) {
       req.flash('message', 'NIM atau password salah.');
       return res.redirect('/');
     }
+
     const user = result[0];
-    const role = user.role; 
+    const role = user.role;
+
+    // Simpan session setelah validasi berhasil
     req.session.user = {
       nim: user.nim,
       role: role,
     };
-    if (role === '2') {
+
+    console.log("role:", role, typeof role);
+
+    req.flash('message', 'Berhasil Login');
+
+    if (role === 'praktikan') {
       res.redirect('/mahasiswa');
     } else {
       res.redirect('/kelola');
     }
-    callback(null, user);
 
-  })  
+    if (callback) {
+      callback(null, user);
+    }
+  });
 }
+
   
 module.exports = { AddUser , Login };

@@ -13,7 +13,7 @@
     <div class="row">
         <div class="col-md">
             <% if (message && message.length > 0) { %>
-                <div class="alert alert-success"><%= message %></div>
+                <div class="alert alert-success"><%= message[0] %></div>
             <% } %>
         </div>
     </div>
@@ -36,7 +36,7 @@
             <% kelas.forEach(k => { %>
                 <div class="col-md pt-3">
                     <div class="card" style="width: 15.5rem;">
-                        <img src="/assets/img/class/<%= k.image %>" class="card-img-top" alt="Gambar Kelas">
+                        <img src="/kelas/image/<%= k.id %>" class="card-img-top" alt="Gambar Kelas">
                         <div class="card-body">
                             <h5 class="card-title"><%= k.nama_kelas %></h5>
                             <p class="card-text"><%= k.deskripsi || '' %></p>

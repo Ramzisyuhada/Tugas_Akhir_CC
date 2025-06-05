@@ -1,7 +1,7 @@
 const db = require('../db'); // import koneksi database
 const path = require('path');
 
-function AddKelas(req, res) {
+function AddKelas(id_user,req, res) {
     const imageFile = req.file;
     const NamaKelas = req.body.class_name;
     const Deskripsi = req.body.description;
@@ -44,8 +44,8 @@ function AddKelas(req, res) {
     }
   
     // Simpan ke database jika valid, gambar sebagai BLOB dari buffer multer
-    const sql = `INSERT INTO kelas (namakelas, gambar, deskripsi, token) VALUES (?, ?, ?, ?)`;
-    const values = [NamaKelas, imageFile.buffer, Deskripsi, Token];
+    const sql = `INSERT INTO kelas (namakelas, gambar, deskripsi, token,aslab_id) VALUES (?, ?, ?, ?,?)`;
+    const values = [NamaKelas, imageFile.buffer, Deskripsi, Token,id_user];
   
     db.con.query(sql, values, function (err, result) {
       if (err) {
@@ -58,34 +58,141 @@ function AddKelas(req, res) {
     });
   }
 
-  function GetAllKelas(callback){
-    const sql = `SELECT id, namakelas AS nama_kelas, gambar AS image FROM kelas`;
+  function GetKelasMahasiswa(id, callback) {
+    const sql = `
+    SELECT 
+    kelas.id, 
+    kelas.namakelas AS nama_kelas,
+    kelas.gambar AS foto,
+    mahasiswa.nama AS nama,
+    kelas.token AS token
+  FROM kelas
+  LEFT JOIN mahasiswa ON kelas.aslab_id = mahasiswa.id
+  WHERE kelas.id = ?
+    `;
+  
+    db.con.query(sql, [id], function (err, result) {
+      if (err) {
+        console.error('Error saat query GetKelasMahasiswa:', err);
+        return callback(err, null); // Jangan pakai res di sini
+      }
+      console.log(id);
+      callback(null, result[0]); // hasil dikembalikan lewat callback
+    });
+  }
+  
+  function GetAllKelas(id, callback){
+    const sql = `SELECT id, namakelas AS nama_kelas, gambar AS image FROM kelas WHERE aslab_id = ?`;
 
-  db.con.query(sql, (err, results) => {
+  db.con.query(sql,[id] ,(err, results) => {
     if (err) {
       return callback(err, null);
     }
     callback(null, results);
   });
   }
+  function GetKelas( callback){
+    const sql = `SELECT id, namakelas AS nama_kelas, gambar AS image  ,deskripsi as deskripsi , token as token FROM kelas`;
 
-  function IkutiKelas(mahasiswa_id,req, res){
-    
-    const sql = `INSERT INTO kelas_mahasiswa (mahasiswa_id, kelas_id, status)
-    VALUES (?, ?, ?);
-    `;
-
-    const values = [mahasiswa_id, req.params.id, "aktif"];
-    db.con.query(sql, values, function (err, result) {
+  db.con.query(sql ,(err, results) => {
+    if (err) {
+      return callback(err, null);
+    }
+    callback(null, results);
+  });
+  }
+  function GetKelasSaya(id,req,res,callback){
+    const sql = `SELECT 
+    kelas.id, 
+    kelas.namakelas AS nama_kelas, 
+    kelas.gambar AS image, 
+    kelas.deskripsi AS deskripsi
+  FROM kelas_mahasiswa
+  JOIN kelas ON kelas_mahasiswa.kelas_id = kelas.id
+  WHERE kelas_mahasiswa.mahasiswa_id = ?
+  `;
+    db.con.query(sql, [id], function (err, result) {
       if (err) {
-        console.error(err);
-        return res.status(500).send('Gagal menyimpan data');
+        console.error('Error saat query GetKelasMahasiswa:', err);
+        return callback(err, null); // Jangan pakai res di sini
       }
-  
-      req.flash('message', 'Kelas Berhasil Ditambahkan!');
-      res.redirect('/mahasiswa');
+      callback(null, result); // hasil dikembalikan lewat callback
     });
 
-    
   }
-module.exports = { AddKelas,GetAllKelas ,IkutiKelas };
+  function IkutiKelas(mahasiswa_id, idkelas, req, res) {
+    const cekTokenQuery = 'SELECT * FROM kelas WHERE token = ?';
+    db.con.query(cekTokenQuery, [req.body.token], function (err, resultToken) {
+      if (err) {
+        console.error(err);
+        return res.status(500).send('Gagal memeriksa token.');
+      }
+  
+      if (resultToken.length === 0) {
+        req.flash('message', 'Token tidak valid!');
+        return res.redirect('/mahasiswa');
+      }
+  
+      const cekKelasQuery = 'SELECT * FROM kelas WHERE id = ?';
+      db.con.query(cekKelasQuery, [req.body.idkelas], function (err, resultKelas) {
+        if (err) {
+          console.error(err);
+          return res.status(500).send('Gagal memeriksa kelas.');
+        }
+  
+        if (resultKelas.length === 0) {
+          req.flash('message', 'Kelas tidak ditemukan!');
+          return res.redirect('/mahasiswa');
+        }
+  
+        // Cek apakah mahasiswa sudah mengikuti kelas ini
+        const cekDuplikatQuery = 'SELECT * FROM kelas_mahasiswa WHERE mahasiswa_id = ? AND kelas_id = ?';
+        db.con.query(cekDuplikatQuery, [mahasiswa_id, req.body.idkelas], function (err, resultDuplikat) {
+          if (err) {
+            console.error(err);
+            return res.status(500).send('Gagal memeriksa keikutsertaan kelas.');
+          }
+  
+          if (resultDuplikat.length > 0) {
+            req.flash('message', 'Anda sudah mengikuti kelas ini!');
+            return res.redirect('/mahasiswa');
+          }
+  
+          const insertQuery = 'INSERT INTO kelas_mahasiswa (mahasiswa_id, kelas_id, status) VALUES (?, ?, ?)';
+          const values = [mahasiswa_id, req.body.idkelas, 'aktif'];
+          db.con.query(insertQuery, values, function (err, resultInsert) {
+            if (err) {
+              console.error(err);
+              return res.status(500).send('Gagal menyimpan data keikutsertaan.');
+            }
+  
+            req.flash('message', 'Berhasil mengikuti kelas.');
+            res.redirect('/mahasiswa/kelasSaya');
+          });
+        });
+      });
+    });
+  }
+  function GetKelasClick(id,callback){
+    const sql = `SELECT namakelas as nama_kelas FROM kelas WHERE id = ? `;
+    db.con.query(sql ,[id], (err,result) => {
+      if (err) {
+        return callback(err, null);
+      }
+      callback(null,result[0]);
+    })
+  }
+  
+
+  function GetAllKelasPraktikan( callback){
+    const sql = `SELECT id, namakelas AS nama_kelas, gambar AS image FROM kelas`;
+
+  db.con.query(sql ,(err, results) => {
+    if (err) {
+      return callback(err, null);
+    }
+    callback(null, results);
+  });
+  }
+  
+module.exports = { AddKelas,GetAllKelas,GetKelas ,GetKelasClick,IkutiKelas,GetKelasMahasiswa ,GetAllKelasPraktikan,GetKelasSaya};

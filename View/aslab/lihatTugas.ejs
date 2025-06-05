@@ -27,12 +27,12 @@
       <div class="card" style="width: 18rem;">
         <div class="card-body">
           <h5 class="card-title"><%= task.nama %></h5>
-          <a href="/aslab/download/<%= id_task %>" class="btn btn-primary card-link">
+          <a href="<%= task.file %>" target="_blank" class="btn btn-primary card-link">
             <i class="fas fa-fw fa-file-download"></i> Download
           </a>
-          <a href="#" data-id="<%= task.file %>" class="card-link" data-toggle="modal" data-target="#exampleModal">
+          <!-- <a href="#" data-id="<%= task.file %>" class="card-link" data-toggle="modal" data-target="#exampleModal">
             <i class="fas fa-fw fa-eye"></i> Preview
-          </a>
+          </a> -->
           <br><br>
           <form action="/aslab/lihatTugas/<%= id_task %>" method="POST">
             <% if (task.nilai == 0) { %>
