@@ -1,12 +1,13 @@
-var mysql = require('mysql');
+var mysql = require('mysql2');
 
 
 //Menghubungkan DataBase 
-var con = mysql.createConnection({
-  host: "localhost", //Host nya
-  user: "root", // Nama User nya
-  password: "", // Password nya 
-  database : "tugasakhir_cc"
+const con = mysql.createConnection({
+  host: "database-4.c8nwws2ik3lf.us-east-1.rds.amazonaws.com",
+  user: "admin",
+  password: "Ramzi_240603",
+  database: "tugasakhir_cc",
+  port: 3306
 });
 
 

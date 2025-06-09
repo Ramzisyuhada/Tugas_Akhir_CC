@@ -55,7 +55,7 @@ function AddUser(req, res) {
         }
       });
 
-      return res.render('Auth/register', {
+      return res.render('http://localhost:8000/Auth/register', {
         formData: req.body,
         errors: errors
       });
@@ -72,7 +72,7 @@ function AddUser(req, res) {
       }
       req.flash('message', 'Registrasi berhasil! Silakan login.');
 
-      res.redirect('/');
+      res.redirect('http://localhost:8000/');
     });
   });
 }
@@ -81,52 +81,47 @@ function Login(req, res, callback) {
   const Password = req.body.password;
   const Nim = req.body.nim;
 
-  // Validasi input
   if (!Nim || Nim.trim() === '') {
-    req.flash('message', 'Nim Tidak Boleh Kosong.');
-    return res.redirect('/');
+    return res.status(400).json({ message: 'Nim Tidak Boleh Kosong.' });
   }
   if (!Password || Password.trim() === '') {
-    req.flash('message', 'Password Tidak Boleh Kosong.');
-    return res.redirect('/');
+    return res.status(400).json({ message: 'Password Tidak Boleh Kosong.' });
   }
 
-  var sql = `SELECT * FROM mahasiswa WHERE nim = ? AND password = ?`;
+  const sql = `SELECT * FROM mahasiswa WHERE nim = ? AND password = ?`;
   db.con.query(sql, [Nim, Password], function(err, result) {
     if (err) {
       console.error(err);
-      return res.status(500).send('Terjadi kesalahan server saat pengecekan data.');
+      return res.status(500).json({ message: 'Terjadi kesalahan server saat pengecekan data.' });
     }
 
     if (result.length === 0) {
-      req.flash('message', 'NIM atau password salah.');
-      return res.redirect('/');
+      return res.status(401).json({ message: 'NIM atau password salah.' });
     }
 
     const user = result[0];
     const role = user.role;
 
-    // Simpan session setelah validasi berhasil
     req.session.user = {
       nim: user.nim,
       role: role,
     };
 
-    console.log("role:", role, typeof role);
-
-    req.flash('message', 'Berhasil Login');
-
-    if (role === 'praktikan') {
-      res.redirect('/mahasiswa');
-    } else {
-      res.redirect('/kelola');
-    }
-
     if (callback) {
       callback(null, user);
     }
+
+    return res.json({
+      message: 'Berhasil Login',
+      user: {
+        nim: user.nim,
+        role: role,
+        id: user.id
+      }
+    });
   });
 }
+
 
   
 module.exports = { AddUser , Login };

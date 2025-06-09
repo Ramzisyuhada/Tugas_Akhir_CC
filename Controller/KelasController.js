@@ -1,7 +1,7 @@
 const db = require('../db'); // import koneksi database
 const path = require('path');
 
-function AddKelas(id_user,req, res) {
+function AddKelas(req, res) {
     const imageFile = req.file;
     const NamaKelas = req.body.class_name;
     const Deskripsi = req.body.description;
@@ -45,7 +45,7 @@ function AddKelas(id_user,req, res) {
   
     // Simpan ke database jika valid, gambar sebagai BLOB dari buffer multer
     const sql = `INSERT INTO kelas (namakelas, gambar, deskripsi, token,aslab_id) VALUES (?, ?, ?, ?,?)`;
-    const values = [NamaKelas, imageFile.buffer, Deskripsi, Token,id_user];
+    const values = [NamaKelas, imageFile.buffer, Deskripsi, Token,req.body.id_user];
   
     db.con.query(sql, values, function (err, result) {
       if (err) {
@@ -88,18 +88,19 @@ function AddKelas(id_user,req, res) {
     if (err) {
       return callback(err, null);
     }
+    console.log(id);
     callback(null, results);
   });
   }
   function GetKelas( callback){
     const sql = `SELECT id, namakelas AS nama_kelas, gambar AS image  ,deskripsi as deskripsi , token as token FROM kelas`;
 
-  db.con.query(sql ,(err, results) => {
-    if (err) {
-      return callback(err, null);
-    }
-    callback(null, results);
-  });
+    db.con.query(sql ,(err, results) => {
+      if (err) {
+        return callback(err, null);
+      }
+      callback(null, results);
+    });
   }
   function GetKelasSaya(id,req,res,callback){
     const sql = `SELECT 
@@ -117,6 +118,9 @@ function AddKelas(id_user,req, res) {
         return callback(err, null); // Jangan pakai res di sini
       }
       callback(null, result); // hasil dikembalikan lewat callback
+
+
+
     });
 
   }
