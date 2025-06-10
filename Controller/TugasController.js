@@ -40,10 +40,18 @@ function PengumpulanTugas(mahasiswa_id,link,req,res){
             return callback(err, null); // kirim error ke callback
         }
 
+<<<<<<< HEAD
     
     });
 }
 function GetTugasByID(req,res, callback) {
+=======
+        res.redirect(`/mahasiswa/detailTugas/${req.body.id}`);   
+    
+    });
+}
+function GetTugasByID(id_kelas, callback) {
+>>>>>>> 27cbdd9 (Hampir beres)
     db.con.query('SELECT id as id, judul as Title , tenggat as batas_waktu,deskripsi as Description FROM tugas WHERE id = ?', [id_kelas], (err, result) => {
         if (err) {
             console.error('Database error:', err);
@@ -57,7 +65,11 @@ function GetTugasByID(req,res, callback) {
 
 
 function GetPengumpulanTugasAdmin(req,res,callback){
+<<<<<<< HEAD
     const {id} = req.params;
+=======
+    const {id_task} = req.params;
+>>>>>>> 27cbdd9 (Hampir beres)
     const sql = `SELECT 
     pengumpulan_tugas.id, 
     pengumpulan_tugas.file_pengumpulan AS nama_file,
@@ -72,7 +84,11 @@ LEFT JOIN mahasiswa ON kelas.aslab_id = mahasiswa.id
 WHERE pengumpulan_tugas.id = ?
     `;
 
+<<<<<<< HEAD
     db.con.query(sql, [id], (err, result) => {
+=======
+    db.con.query(sql, [id_task], (err, result) => {
+>>>>>>> 27cbdd9 (Hampir beres)
         if (err) {
             console.error('Database error:', err);
             return callback(err, null); 
@@ -84,8 +100,13 @@ WHERE pengumpulan_tugas.id = ?
 
 function SetNilai(req, res) {
     const { nilai } = req.body;
+<<<<<<< HEAD
     const pengumpulanTugasId = req.body.id;
     console.log("Id : ",pengumpulanTugasId)
+=======
+    const pengumpulanTugasId = req.params.id;
+
+>>>>>>> 27cbdd9 (Hampir beres)
     const updateSQL = `UPDATE pengumpulan_tugas SET nilai = ? WHERE id = ?`;
     db.con.query(updateSQL, [nilai, pengumpulanTugasId], function (err, updateResult) {
         if (err) {
@@ -93,9 +114,26 @@ function SetNilai(req, res) {
             return res.status(500).json({ error: 'Gagal mengupdate nilai' });
         }
 
+<<<<<<< HEAD
                 return res.status(200).json({ message: 'Nilai berhasil diperbarui' });
 
         });
+=======
+        // SELECT untuk ambil data terbaru
+        const selectSQL = `SELECT * FROM pengumpulan_tugas WHERE id = ?`;
+        db.con.query(selectSQL, [pengumpulanTugasId], function (err2, rows) {
+            if (err2 || rows.length === 0) {
+                console.error('Error saat mengambil data setelah update:', err2);
+                return res.status(500).json({ error: 'Gagal mengambil data setelah update' });
+            }
+
+            const updatedData = rows[0]; // data yang sudah diupdate
+
+            req.flash('message', 'Nilai berhasil diubah!');
+            res.redirect(`/detailTugas/${updatedData.kelas_id}/${updatedData.tugas_id}`);
+        });
+    });
+>>>>>>> 27cbdd9 (Hampir beres)
 }
 
 
@@ -112,7 +150,11 @@ LEFT JOIN kelas ON tugas.kelas_id = kelas.id
 LEFT JOIN mahasiswa ON kelas.aslab_id = mahasiswa.id
 WHERE pengumpulan_tugas.tugas_id = ?
     `;
+<<<<<<< HEAD
     db.con.query(sql, [req.params.id],function (err, result) {
+=======
+    db.con.query(sql, [req.params.id_tugas],function (err, result) {
+>>>>>>> 27cbdd9 (Hampir beres)
         if (err) {
           console.error('Error saat query GetKelasMahasiswa:', err);
           return callback(err, null); // Jangan pakai res di sini
@@ -123,11 +165,19 @@ WHERE pengumpulan_tugas.tugas_id = ?
 function AddTugas(linkfile,req,res){
     const sql = 'INSERT INTO tugas (judul, kelas_id, tenggat, file, deskripsi) VALUES (?, ?, ?, ?, ?)';
     const values = [
+<<<<<<< HEAD
         req.body.nama,
         req.body.id_kelas ,       // judul
         req.body.bts_waktu,    
         linkfile,              
         req.body.deskripsi   
+=======
+        req.body.title,
+        req.params.id ,       // judul
+        req.body.bts_waktu,    
+        linkfile,              
+        req.body.description   
+>>>>>>> 27cbdd9 (Hampir beres)
       ];   
     db.con.query(sql,values , function (err,result) {
         if (err) {
@@ -135,6 +185,11 @@ function AddTugas(linkfile,req,res){
             return res.status(500).send('Gagal menyimpan data');
           }
 
+<<<<<<< HEAD
+=======
+          req.flash('message', 'Tugas Berhasil Ditambahkan!');
+          res.redirect(`/lihatKelas/${req.params.id}`);
+>>>>>>> 27cbdd9 (Hampir beres)
         })
 }
 module.exports = {

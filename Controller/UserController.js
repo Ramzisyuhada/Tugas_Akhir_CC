@@ -81,7 +81,9 @@ function Login(req, res, callback) {
   const Password = req.body.password;
   const Nim = req.body.nim;
 
+  // Validasi input
   if (!Nim || Nim.trim() === '') {
+<<<<<<< HEAD
     return res.status(400).json({ message: 'Nim Tidak Boleh Kosong.' });
   }
   if (!Password || Password.trim() === '') {
@@ -89,6 +91,17 @@ function Login(req, res, callback) {
   }
 
   const sql = `SELECT * FROM mahasiswa WHERE nim = ? AND password = ?`;
+=======
+    req.flash('message', 'Nim Tidak Boleh Kosong.');
+    return res.redirect('/');
+  }
+  if (!Password || Password.trim() === '') {
+    req.flash('message', 'Password Tidak Boleh Kosong.');
+    return res.redirect('/');
+  }
+
+  var sql = `SELECT * FROM mahasiswa WHERE nim = ? AND password = ?`;
+>>>>>>> 27cbdd9 (Hampir beres)
   db.con.query(sql, [Nim, Password], function(err, result) {
     if (err) {
       console.error(err);
@@ -102,14 +115,32 @@ function Login(req, res, callback) {
     const user = result[0];
     const role = user.role;
 
+<<<<<<< HEAD
+=======
+    // Simpan session setelah validasi berhasil
+>>>>>>> 27cbdd9 (Hampir beres)
     req.session.user = {
       nim: user.nim,
       role: role,
     };
+<<<<<<< HEAD
+=======
+
+    console.log("role:", role, typeof role);
+
+    req.flash('message', 'Berhasil Login');
+
+    if (role === 'praktikan') {
+      res.redirect('/mahasiswa');
+    } else {
+      res.redirect('/kelola');
+    }
+>>>>>>> 27cbdd9 (Hampir beres)
 
     if (callback) {
       callback(null, user);
     }
+<<<<<<< HEAD
 
     return res.json({
       message: 'Berhasil Login',
@@ -123,5 +154,10 @@ function Login(req, res, callback) {
 }
 
 
+=======
+  });
+}
+
+>>>>>>> 27cbdd9 (Hampir beres)
   
 module.exports = { AddUser , Login };
