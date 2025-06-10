@@ -30,7 +30,13 @@ async function Login(req, res, nim, password) {
     };
 
     console.log('req.session.user:', req.session.user);
+    if(data.user.role === "praktikan"){
+        return res.redirect('/mahasiswa/Kelas');
 
+    }else if(data.user.role === "aslab"){
+          return res.redirect('/kelola');
+
+    }
     return res.redirect('/kelola');
 
   } catch (err) {

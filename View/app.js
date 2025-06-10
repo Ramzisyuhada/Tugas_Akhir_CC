@@ -6,8 +6,8 @@ const path = require('path');
 const fetch = require('node-fetch');
 
 const { Login } = require('./Controller/UserController');
-const { GetKelasAslab,GetKelas ,AddKelas} = require('./Controller/KelasController');
-const { AddTugas,SetNilai } = require('./Controller/TugasController');
+const { GetKelasAslab,GetKelas ,AddKelas, IkutiKelas} = require('./Controller/KelasController');
+const { AddTugas,PengumpulanTugas ,SetNilai} = require('./Controller/TugasController');
 
 const multer = require('multer'); // ✅ Import dulu
 
@@ -58,6 +58,175 @@ app.use((req, res, next) => {
   next();
 });
 
+app.post('/mahasiswa/kumpulTugas', upload.single('file'), (req, res) => {
+  PengumpulanTugas(req, res);
+});
+app.get('/mahasiswa/detailTugas/:id' , async (req,res) => {
+  try {
+    const userId = req.session.user?.id;
+    if (!userId) {
+      req.flash('message', 'Anda harus login dulu');
+      return res.redirect('/');
+    }
+
+
+    const TugasRes = await fetch(`http://localhost:3000/api/GetTugasByID/${req.params.id}`);
+
+    if (!TugasRes.ok) throw new Error('Gagal ambil kelas');
+
+    const TaskRes = await fetch(`http://localhost:3000/api/GetTask/${req.session.user?.id}/${req.params.id}`);
+
+    if (!TaskRes.ok) throw new Error('Gagal ambil kelas');
+
+    const TugasArray = await TugasRes.json();
+    const TaskArray = await TaskRes.json();
+
+    return res.render('mahasiswa/detailTugas', {
+      judul: 'Detail Tugas Saya',
+      tugas: TugasArray,
+      task : TaskArray
+    });
+
+  } catch (err) {
+    console.error('Error lihat kelas:', err);
+    req.flash('message', 'Terjadi kesalahan saat ambil data kelas/tugas');
+    return res.redirect('/kelola');
+  }
+})
+
+
+app.get('/mahasiswa/detailKelas/:id' , async (req,res) => {
+  try {
+    const userId = req.session.user?.id;
+    if (!userId) {
+      req.flash('message', 'Anda harus login dulu');
+      return res.redirect('/');
+    }
+
+
+    const kelasRes = await fetch(`http://localhost:3000/api/GetKelasClick/${req.params.id}`);
+
+    if (!kelasRes.ok) throw new Error('Gagal ambil kelas');
+
+    const TugasRes = await fetch(`http://localhost:3000/GetTugas${req.params.id}`);
+
+    if (!TugasRes.ok) throw new Error('Gagal ambil kelas');
+
+    const kelasArray = await kelasRes.json();
+    req.session.kelas = kelasArray;
+    const TugasArray = await TugasRes.json();
+
+    return res.render('mahasiswa/detailKelas', {
+      judul: 'Detail Kelas Saya',
+      tugas: TugasArray,
+      kelas : kelasArray
+    });
+
+  } catch (err) {
+    console.error('Error lihat kelas:', err);
+    req.flash('message', 'Terjadi kesalahan saat ambil data kelas/tugas');
+    return res.redirect('/kelola');
+  }
+})
+app.get('/mahasiswa/KelasSaya' , async (req,res) => {
+      try {
+    const userId = req.session.user?.id;
+    if (!userId) {
+      req.flash('message', 'Anda harus login dulu');
+      return res.redirect('/');
+    }
+
+
+    const kelasRes = await fetch(`http://localhost:3000/api/GetKelasSaya/${req.session.user?.id}`);
+
+    if (!kelasRes.ok) throw new Error('Gagal ambil kelas');
+
+    // Pastikan respons JSON
+    const kelasArray = await kelasRes.json();
+    console.log("Data kelas:", kelasArray);
+    req.session.kelas = kelasArray;
+    return res.render('mahasiswa/kelasSaya', {
+      judul: 'Kelas Saya',
+      kelas: kelasArray,
+    });
+
+  } catch (err) {
+    console.error('Error lihat kelas:', err);
+    req.flash('message', 'Terjadi kesalahan saat ambil data kelas/tugas');
+    return res.redirect('/kelola');
+  }
+})
+app.post('/mahasiswa/tambahTugas' , (req,res) => {
+    IkutiKelas(req,res);
+})
+
+
+app.get('/mahasiswa/ikutiKelas/:id', async (req, res) => {
+  try {
+    const userId = req.session.user?.id;
+    if (!userId) {
+      req.flash('message', 'Anda harus login dulu');
+      return res.redirect('/');
+    }
+
+    const id_kelas = req.params.id;
+    console.log("ID kelas yang diterima:", id_kelas);
+
+    // Validasi ID kelas
+    if (!id_kelas || isNaN(id_kelas)) {
+      req.flash('message', 'ID kelas tidak valid');
+      return res.redirect('/kelola');
+    }
+
+    const kelasRes = await fetch(`http://localhost:3000/api/GetKelasMahasiswa/${id_kelas}`);
+
+    if (!kelasRes.ok) throw new Error('Gagal ambil kelas');
+
+    // Pastikan respons JSON
+    const kelasArray = await kelasRes.json();
+    console.log("Data kelas:", kelasArray);
+    req.session.kelas = kelasArray;
+    return res.render('mahasiswa/tambahKelas', {
+      judul: 'Kelas',
+      kelas: kelasArray,
+      aslab: kelasArray,
+      user: req.session.user,
+      id_kelas: id_kelas
+    });
+
+  } catch (err) {
+    console.error('Error lihat kelas:', err);
+    req.flash('message', 'Terjadi kesalahan saat ambil data kelas/tugas');
+    return res.redirect('/kelola');
+  }
+});
+
+app.get('/mahasiswa/Kelas' , async (req,res) => {
+  try {
+    const userId = req.session.user?.id;
+    if (!userId) {
+      req.flash('message', 'Anda harus login dulu');
+      return res.redirect('/');
+    }
+
+    const id_kelas = req.params.id;
+
+    const kelasRes = await fetch(`http://localhost:3000/GetKelas`);
+    if (!kelasRes.ok) throw new Error('Gagal ambil kelas');
+
+    const kelasArray = await kelasRes.json();  // parse JSON dulu
+    return res.render('mahasiswa/KatalogKelas', {
+      judul: 'Semua Kelas',
+      kelas: kelasArray,
+      user: req.session.user
+    });
+
+  } catch (err) {
+    console.error('Error lihat kelas:', err);
+    req.flash('message', 'Terjadi kesalahan saat ambil data kelas/tugas');
+    return res.redirect('/kelola');
+  }
+})
 app.post('/auth', async (req, res) => {
   const { nim, password } = req.body;
   if (!nim || !password) {
@@ -111,6 +280,21 @@ app.get('/kelas/image/:id', (req, res) => {
     res.send(results[0].gambar);
   });
 });
+
+
+app.get('/gambarAslab/:id', (req,res) => {
+  const id = req.params.id; 
+
+  const sql = 'SELECT gambar FROM kelas WHERE id = ?';
+  db.con.query(sql, [id], (err, result) => {
+    if (err || result.length === 0) {
+      return res.status(404).send('Gambar tidak ditemukan');
+    }
+    console.log("Data gambar ditemukan:", result[0].gambar ? true : false);
+    res.setHeader('Content-Type', 'image/jpeg'); // sesuaikan jika PNG
+    res.send(result[0].gambar);
+  });
+})
 
 // Kelola kelas
 app.get('/kelola', (req, res) => {

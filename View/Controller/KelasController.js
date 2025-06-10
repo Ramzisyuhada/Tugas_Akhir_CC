@@ -146,4 +146,39 @@ function AddKelas(req, res) {
   }
 }
 
-module.exports = { GetKelasAslab ,GetKelas,AddKelas};
+async function IkutiKelas(req,res,callback){
+  try {
+    const response = await fetch('http://localhost:3000/api/IkutiKelas', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token : req.body.token , mahasiswa_id : req.session.user?.id  , idkelas : req.session.kelas?.id })
+    });
+
+    if (!response.ok) {
+      let errorData;
+      try {
+        errorData = await response.json();
+      } catch {
+        errorData = {};
+      }
+      req.flash('message', errorData.message || 'Login gagal');
+      return res.redirect('/');
+    }
+      const message = await response.json();
+
+      req.flash('message', message.message);
+
+   
+    return res.redirect('/mahasiswa/Kelas');
+
+
+
+  } catch (err) {
+    console.error('Login error:', err);
+    req.flash('message', 'Login gagal karena error server');
+    return res.redirect('/');
+  }
+
+}
+
+module.exports = { GetKelasAslab ,GetKelas,AddKelas,IkutiKelas};

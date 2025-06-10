@@ -39,7 +39,7 @@ console.error('Error ambil kelas:', err);
   
   }
 }
-  async function GetTugas(req,res){
+async function GetTugas(req,res){
       try {
       const userId = req.session.user?.id;
       if (!userId) {
@@ -72,7 +72,7 @@ console.error('Error ambil kelas:', err);
     return res.redirect('/kelola');   
   
   }
-  }
+}
 
 function AddTugas(req, res) {
   const userId = req.session.user?.id;
@@ -135,6 +135,64 @@ form.submit('http://localhost:3000/api/tambahTugas', (err, response) => {
   });
 });
 
+}
+function PengumpulanTugas(req, res) {
+  const userId = req.session.user?.id;
+  if (!userId) {
+    req.flash('message', 'Anda harus login terlebih dahulu');
+    return res.redirect('/');
+  }
+
+  const form = new FormData();
+  form.append('id', req.body.id);
+  form.append('mahasiswa_id', req.session.user?.id);
+  if (req.file) {
+    form.append('file', req.file.buffer, {
+      filename: req.file.originalname,
+      contentType: req.file.mimetype,
+    });
+  }
+
+form.submit('http://localhost:3000/api/NgumpulTugas', (err, response) => {
+  if (err) {
+    console.error('Terjadi error saat menambahkan tugas:', err);
+    if (!res.headersSent) {
+      req.flash('message', 'Terjadi kesalahan pada server saat menambahkan tugas');
+      return res.redirect('/kelola');
+    }
+    return;
+  }
+
+  let data = '';
+  response.on('data', chunk => data += chunk);
+
+  response.on('end', () => {
+    if (res.headersSent) return; // Cegah multiple response
+
+    try {
+      const parsedData = JSON.parse(data);
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        req.session.tugas = parsedData;
+        req.flash('message', 'Berhasil mengumpulkan Tugas');
+      } else {
+        req.flash('message', parsedData.message || 'Gagal menambahkan tugas');
+      }
+    } catch (e) {
+      req.flash('message', 'Gagal memproses respons dari server');
+    }
+
+    return res.redirect('/kelola');
+  });
+
+  response.on('error', (e) => {
+    console.error('Response error:', e);
+    if (!res.headersSent) {
+      req.flash('message', 'Gagal menghubungi server tugas');
+      return res.redirect('/kelola');
+    }
+  });
+});
 }
 
 function SetNilai(req, res) {
@@ -200,7 +258,40 @@ function SetNilai(req, res) {
 }
 
 
+async function IkutiKelas(req,res,callback){
+  try {
+    const response = await fetch('http://localhost:3000/api/IkutiKelas', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token : req.body.token , mahasiswa_id : req.session.user?.id  , idkelas : req.session.kelas?.id })
+    });
+
+    if (!response.ok) {
+      let errorData;
+      try {
+        errorData = await response.json();
+      } catch {
+        errorData = {};
+      }
+      req.flash('message', errorData.message || 'Login gagal');
+      return res.redirect('/');
+    }
+      const message = await response.json();
+
+      req.flash('message', message.message);
+
+   
+    return res.redirect('/mahasiswa/Kelas');
 
 
 
-module.exports = { GetTugas ,AddTugas,SetNilai};
+  } catch (err) {
+    console.error('Login error:', err);
+    req.flash('message', 'Login gagal karena error server');
+    return res.redirect('/');
+  }
+
+}
+
+
+module.exports = { GetTugas ,AddTugas,SetNilai,PengumpulanTugas};

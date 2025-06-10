@@ -9,10 +9,6 @@
     <!-- Sticky Navbar -->
     <nav class="navbar sticky-top navbar-expand-lg navbar-light bg-light">
       <a class="navbar-brand" href="/">
-<<<<<<< HEAD
-=======
-        <img src="/mahasiswa/detailKelas/<%= kelas.id %>" width="30" height="30" class="d-inline-block align-top rounded-circle" alt="">
->>>>>>> 27cbdd9 (Hampir beres)
         <%= kelas.nama_kelas %>
       </a>
       <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav"
@@ -63,11 +59,7 @@
             <div class="list-group mb-3">
               <a href="/detailTugas/<%= kelas.id %>/<%= t.id %>" class="list-group-item list-group-item-action">
                 <%= t.Title %>
-<<<<<<< HEAD
                 <p><%= new Date(t.batas_waktu ).toLocaleString('id-ID', {
-=======
-                <p><%= new Date(t.batas_waktu * 1000).toLocaleString('id-ID', {
->>>>>>> 27cbdd9 (Hampir beres)
                   day: '2-digit', month: 'long' ,
                   hour: '2-digit', minute: '2-digit', second: '2-digit'
                 }) %></p>
